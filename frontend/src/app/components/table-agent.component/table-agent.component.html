@@ -1,0 +1,80 @@
+<!-- Spinner shown only when loading -->
+<div *ngIf="isLoading" class="flex justify-center items-center h-[60vh]">
+  <div class="animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent"></div>
+</div>
+
+<!-- Table content shown only after loading is done -->
+<div *ngIf="!isLoading">
+  <div class="search-bar my-4">
+    <input
+      type="text"
+      placeholder="Rechercher par NS ou NCIN"
+      (input)="onSearchChange($event)"
+      class="border p-2 rounded w-full max-w-xs"
+    />
+  </div>
+
+  <div class="relative overflow-x-auto mt-4 p-4">
+    <table
+      class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400"
+    >
+      <thead
+        class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400"
+      >
+        <tr>
+          <th class="px-6 py-3">NS</th>
+          <th class="px-6 py-3">NCIN</th>
+          <th class="px-6 py-3">Nom</th>
+          <th class="px-6 py-3">Prénom</th>
+          <th class="px-6 py-3">Cadre</th>
+          <th class="px-6 py-3">Grade</th>
+          <th class="px-6 py-3">Fonction</th>
+          <th class="px-6 py-3">Y-2</th>
+          <th class="px-6 py-3">Y-1</th>
+          <th class="px-6 py-3">Y</th>
+          <th class="px-6 py-3">Solde</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr
+          *ngFor="let emp of employees"
+          class="bg-white border-b dark:bg-gray-800 dark:border-gray-700"
+        >
+          <td class="px-6 py-4">{{ emp.NS }}</td>
+          <td class="px-6 py-4">{{ emp.NCIN }}</td>
+          <td class="px-6 py-4">{{ emp.NOM }}</td>
+          <td class="px-6 py-4">{{ emp.PRENOM }}</td>
+          <td class="px-6 py-4">{{ emp.CADRE }}</td>
+          <td class="px-6 py-4">{{ emp.GRADE }}</td>
+          <td class="px-6 py-4">{{ emp.FONCTION }}</td>
+          <td class="px-6 py-4">{{ emp['SOLDE_Y-2'] }}</td>
+          <td class="px-6 py-4">{{ emp['SOLDE_Y-1'] }}</td>
+          <td class="px-6 py-4">{{ emp['SOLDE_Y'] }}</td>
+          <td class="px-6 py-4 font-semibold">{{ emp['SOLDE'] }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div
+    class="pagination-controls flex justify-between items-center mt-4 px-4"
+  >
+    <button
+      (click)="goToPreviousPage()"
+      [disabled]="page === 1"
+      class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
+    >
+      Précédent
+    </button>
+
+    <span>Page {{ page }} / {{ totalPages() }}</span>
+
+    <button
+      (click)="goToNextPage()"
+      [disabled]="page * pageSize >= totalEmployees"
+      class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
+    >
+      Suivant
+    </button>
+  </div>
+</div>

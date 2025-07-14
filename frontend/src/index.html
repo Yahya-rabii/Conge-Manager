@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Frontend</title>
+  <base href="/">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/j-wing-css@latest/dist/j-wing.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+</head>
+ <body>
+    <!-- Initial loader shown instantly -->
+    <div id="global-loader" style="
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background: white;
+    ">
+      <div style="
+        width: 60px;
+        height: 60px;
+        border: 6px solid #3b82f6;
+        border-top: 6px solid transparent;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      "></div>
+    </div>
+
+    <!-- Angular app -->
+    <app-root></app-root>
+  </body>
+
+  <style>
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
+</html>
