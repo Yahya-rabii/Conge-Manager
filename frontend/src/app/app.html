@@ -3,7 +3,7 @@
     <!-- Logo / Title -->
     <a routerLink="/" class="flex items-center space-x-3 rtl:space-x-reverse">
       <!-- Replace src with your logo path if you want -->
-      <img src="assets/logo.png" alt="Logo de l'application" class="h-8" />
+      <img src="assets/logo.png" alt="Logo de l'application" class="h-15 w-25" />
       <span class="self-center text-2xl font-semibold whitespace-nowrap text-gray-900 dark:text-white">
         Gestionnaire d'employés
       </span>
@@ -28,24 +28,15 @@
             [routerLinkActiveOptions]="{ exact: true }"
             class="block py-2 px-3 rounded-sm text-white hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-blue-700 md:p-0 dark:text-white md:dark:hover:text-blue-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent"
           >
-            Employés
+             Gestion de congés
           </a>
         </li>
-        <li>
-          <a
-            routerLink="/search"
-            routerLinkActive="text-blue-700 bg-blue-100 md:bg-transparent md:text-blue-700 dark:text-white md:dark:text-blue-500"
-            class="block py-2 px-3 rounded-sm text-white hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-blue-700 md:p-0 dark:text-white md:dark:hover:text-blue-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent"
-            >Rechercher</a
-          >
-        </li>
- 
         <li>
           <a
             routerLink="/add"
             routerLinkActive="text-blue-700 bg-blue-100 md:bg-transparent md:text-blue-700 dark:text-white md:dark:text-blue-500"
             class="block py-2 px-3 rounded-sm text-white hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-blue-700 md:p-0 dark:text-white md:dark:hover:text-blue-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent"
-            >Ajouter</a
+            >Ajouter un employé</a
           >
         </li>
         <li>
@@ -53,7 +44,7 @@
             routerLink="/delete"
             routerLinkActive="text-blue-700 bg-blue-100 md:bg-transparent md:text-blue-700 dark:text-white md:dark:text-blue-500"
             class="block py-2 px-3 rounded-sm text-white hover:bg-gray-100 md:hover:bg-transparent md:border-0 md:hover:text-blue-700 md:p-0 dark:text-white md:dark:hover:text-blue-500 dark:hover:bg-gray-700 dark:hover:text-white md:dark:hover:bg-transparent"
-            >Supprimer</a
+            >Supprimer un employé</a
           >
         </li>
       </ul>

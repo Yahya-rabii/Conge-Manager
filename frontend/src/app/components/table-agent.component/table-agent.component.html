@@ -1,27 +1,40 @@
-<!-- Spinner shown only when loading -->
-<div *ngIf="isLoading" class="flex justify-center items-center h-[60vh]">
-  <div class="animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent"></div>
-</div>
-
-<!-- Table content shown only after loading is done -->
-<div *ngIf="!isLoading">
-  <div class="search-bar my-4">
+<div class="px-4 sm:px-6 lg:px-8">
+  <!-- Search Bar -->
+  <div class="flex items-center justify-between my-6">
     <input
+      #searchInput
       type="text"
-      placeholder="Rechercher par NS ou NCIN"
+      placeholder="🔍 Rechercher par NS ou NCIN"
+      [value]="searchQuery"
       (input)="onSearchChange($event)"
-      class="border p-2 rounded w-full max-w-xs"
+      class="border border-gray-300 focus:ring-2 focus:ring-gray-700 focus:outline-none px-3 py-2 rounded-md w-full max-w-md shadow-sm transition"
     />
+
+    <button
+      (click)="openBulkModal()"
+      [disabled]="selectedUsers.length === 0"
+      class="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-blue-600 shadow transition disabled:opacity-35 disabled:cursor-not-allowed ml-4"
+    >
+      📑 Appliquer un congé à la sélection
+    </button>
   </div>
 
-  <div class="relative overflow-x-auto mt-4 p-4">
+  <!-- Loading Spinner or Table -->
+  <div class="relative overflow-x-auto shadow rounded-md min-h-[200px]">
+
+    <!-- Spinner visible while loading -->
+    <div *ngIf="isLoading" class="flex justify-center items-center h-40">
+      <div class="animate-spin rounded-full h-12 w-12 border-4 border-gray-700 border-t-transparent"></div>
+    </div>
+
+    <!-- Table only shown if NOT loading and employees exist -->
     <table
-      class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400"
+      *ngIf="!isLoading && (employees?.length ?? 0) > 0"
+      class="w-full text-sm text-left text-gray-500 dark:text-gray-400"
     >
-      <thead
-        class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400"
-      >
+      <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-300">
         <tr>
+          <th class="px-6 py-3"></th>
           <th class="px-6 py-3">NS</th>
           <th class="px-6 py-3">NCIN</th>
           <th class="px-6 py-3">Nom</th>
@@ -29,17 +42,26 @@
           <th class="px-6 py-3">Cadre</th>
           <th class="px-6 py-3">Grade</th>
           <th class="px-6 py-3">Fonction</th>
-          <th class="px-6 py-3">Y-2</th>
-          <th class="px-6 py-3">Y-1</th>
-          <th class="px-6 py-3">Y</th>
-          <th class="px-6 py-3">Solde</th>
+          <th class="px-6 py-3 text-center">Y-2</th>
+          <th class="px-6 py-3 text-center">Y-1</th>
+          <th class="px-6 py-3 text-center">Y</th>
+          <th class="px-6 py-3 text-right">Solde</th>
         </tr>
       </thead>
       <tbody>
         <tr
           *ngFor="let emp of employees"
-          class="bg-white border-b dark:bg-gray-800 dark:border-gray-700"
+          (click)="toggleUserSelection(emp)"
+          [class.bg-blue-100]="isUserSelected(emp)"
+          class="cursor-pointer hover:bg-gray-500 transition dark:bg-gray-800 dark:border-gray-700 hover:text-black"
         >
+          <td class="px-6 py-4 text-center" (click)="$event.stopPropagation()">
+            <input
+              type="checkbox"
+              [checked]="isUserSelected(emp)"
+              (change)="toggleUserSelection(emp)"
+            />
+          </td>
           <td class="px-6 py-4">{{ emp.NS }}</td>
           <td class="px-6 py-4">{{ emp.NCIN }}</td>
           <td class="px-6 py-4">{{ emp.NOM }}</td>
@@ -47,32 +69,163 @@
           <td class="px-6 py-4">{{ emp.CADRE }}</td>
           <td class="px-6 py-4">{{ emp.GRADE }}</td>
           <td class="px-6 py-4">{{ emp.FONCTION }}</td>
-          <td class="px-6 py-4">{{ emp['SOLDE_Y-2'] }}</td>
-          <td class="px-6 py-4">{{ emp['SOLDE_Y-1'] }}</td>
-          <td class="px-6 py-4">{{ emp['SOLDE_Y'] }}</td>
-          <td class="px-6 py-4 font-semibold">{{ emp['SOLDE'] }}</td>
+          <td class="px-6 py-4 text-center">{{ emp['SOLDE_Y-2'] }}</td>
+          <td class="px-6 py-4 text-center">{{ emp['SOLDE_Y-1'] }}</td>
+          <td class="px-6 py-4 text-center">{{ emp['SOLDE_Y'] }}</td>
+          <td class="px-6 py-4 font-semibold text-right text-blue-600">{{ emp['SOLDE'] }}</td>
         </tr>
       </tbody>
     </table>
+
+    <!-- Show no data message if not loading and no employees -->
+    <div
+      *ngIf="!isLoading && employees?.length === 0"
+      class="p-4 text-center text-gray-500 dark:text-gray-400"
+    >
+      Aucun employé trouvé.
+    </div>
   </div>
 
+  <!-- Modal for bulk congé request -->
   <div
-    class="pagination-controls flex justify-between items-center mt-4 px-4"
+    *ngIf="showReviewModal"
+    class="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 transition-all animate-fade-in"
+  >
+    <div
+      class="bg-white dark:bg-gray-900 rounded-2xl p-8 w-full max-w-2xl shadow-2xl border border-gray-200 dark:border-gray-700 relative"
+    >
+      <button
+        (click)="showReviewModal = false"
+        class="absolute top-4 right-4 text-gray-400 hover:text-blue-700 dark:hover:text-blue-400 text-3xl font-bold focus:outline-none transition"
+        aria-label="Fermer"
+      >
+        &times;
+      </button>
+
+      <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-3">
+          <span class="text-3xl text-blue-700 dark:text-blue-400">🧾</span>
+          <h2 class="text-2xl font-bold text-gray-800 dark:text-white">
+            Appliquer un congé groupé
+          </h2>
+        </div>
+        <span
+          *ngIf="selectedUsers.length > 0"
+          class="bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1 rounded-full dark:bg-blue-800 dark:text-white"
+        >
+          {{ selectedUsers.length }} agents
+        </span>
+      </div>
+
+      <div class="mb-6">
+        <ul
+          *ngIf="selectedUsers.length > 0"
+          class="max-h-52 overflow-y-auto divide-y divide-gray-200 dark:divide-gray-700 bg-gray-50 dark:bg-gray-800 p-3 rounded-lg shadow-inner"
+        >
+          <li
+            *ngFor="let u of selectedUsers"
+            class="flex items-center gap-4 py-2 px-2 group hover:bg-blue-50 dark:hover:bg-gray-700 rounded transition-all"
+          >
+            <span class="text-green-500 text-lg">✔️</span>
+            <div class="flex flex-col flex-grow text-sm">
+              <span class="font-medium text-gray-800 dark:text-gray-100">{{
+                u.PRENOM
+              }}
+                {{
+                  u.NOM
+                }}</span
+              >
+              <span class="text-xs text-gray-500 dark:text-gray-400">NS: {{ u.NS }}</span>
+            </div>
+            <span
+              class="ml-auto text-xs text-blue-600 dark:text-blue-300 font-semibold"
+            >
+              Solde: {{ u.SOLDE_Y + u['SOLDE_Y-1'] }}
+            </span>
+            <button
+              (click)="removeUser(u); $event.stopPropagation()"
+              class="ml-4 text-red-500 hover:text-red-700 dark:hover:text-red-400 text-lg opacity-70 group-hover:opacity-100 transition"
+              title="Retirer"
+            >
+              ✖
+            </button>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Datepickers -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+        <mat-form-field appearance="fill" class="w-full">
+          <mat-label>Date début</mat-label>
+          <input
+            matInput
+            [matDatepicker]="bulkPickerFrom"
+            [(ngModel)]="bulkFrom"
+            (dateChange)="calculateBulkDuration()"
+            name="bulkFrom"
+          />
+          <mat-datepicker-toggle matSuffix [for]="bulkPickerFrom"></mat-datepicker-toggle>
+          <mat-datepicker #bulkPickerFrom></mat-datepicker>
+        </mat-form-field>
+
+        <mat-form-field appearance="fill" class="w-full">
+          <mat-label>Date fin</mat-label>
+          <input
+            matInput
+            [matDatepicker]="bulkPickerTo"
+            [(ngModel)]="bulkTo"
+            (dateChange)="calculateBulkDuration()"
+            name="bulkTo"
+          />
+          <mat-datepicker-toggle matSuffix [for]="bulkPickerTo"></mat-datepicker-toggle>
+          <mat-datepicker #bulkPickerTo></mat-datepicker>
+        </mat-form-field>
+      </div>
+
+      <!-- Duration -->
+      <p *ngIf="bulkDuration > 0" class="text-sm mb-4 text-gray-700 dark:text-gray-200">
+        🕒 Durée : <span class="font-bold">{{ bulkDuration }} jour(s)</span>
+      </p>
+
+      <!-- Actions -->
+      <div class="flex justify-end gap-3 mt-2">
+        <button
+          (click)="showReviewModal = false"
+          class="px-5 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition font-medium shadow-sm"
+        >
+          Annuler
+        </button>
+        <button
+          (click)="submitBulkConge(bulkFrom, bulkTo)"
+          [disabled]="
+            !bulkFrom || !bulkTo || selectedUsers.length === 0 || bulkDuration === 0
+          "
+          class="px-5 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition disabled:opacity-50 disabled:cursor-pointer font-semibold shadow"
+        >
+          Valider
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pagination Controls -->
+  <div
+    class="pagination-controls flex justify-between items-center mt-6"
   >
     <button
       (click)="goToPreviousPage()"
       [disabled]="page === 1"
-      class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
+      class="bg-gray-700 text-white px-4 py-2 rounded-md shadow hover:bg-gray-400 hover:text-black transition disabled:opacity-50 disabled:cursor-not-allowed"
     >
       Précédent
     </button>
 
-    <span>Page {{ page }} / {{ totalPages() }}</span>
+    <span class="text-gray-700 font-medium">Page {{ page }} / {{ totalPages() }}</span>
 
     <button
       (click)="goToNextPage()"
       [disabled]="page * pageSize >= totalEmployees"
-      class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300"
+      class="bg-gray-700 text-white px-4 py-2 rounded-md shadow hover:bg-gray-400 hover:text-black transition disabled:opacity-50 disabled:cursor-not-allowed"
     >
       Suivant
     </button>

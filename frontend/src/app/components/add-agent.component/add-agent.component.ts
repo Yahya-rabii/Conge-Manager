@@ -33,7 +33,7 @@ export class AddEmployeeComponent {
     "SOLDE_Y-2": 0,
     "SOLDE_Y-1": 0,
     "SOLDE_Y": 0,
-    "SOLDE": 0,
+    SOLDE: 0,
     LAST_UPDATED_YEAR: new Date().getFullYear(),
   };
 
@@ -65,7 +65,7 @@ export class AddEmployeeComponent {
         "SOLDE_Y-2": 0,
         "SOLDE_Y-1": 0,
         "SOLDE_Y": 0,
-        "SOLDE": 0,
+        SOLDE: 0,
         LAST_UPDATED_YEAR: new Date().getFullYear(),
       };
     });

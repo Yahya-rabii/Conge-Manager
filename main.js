@@ -8,7 +8,8 @@ const {
   generateWordDoc,
   addEmployee,
   deleteEmployee,
-  rotateAllSold
+  rotateAllSold,
+  writeBulkExcel
 } = require('./backend/conge.service');
 
 function getDataFilePath() {
@@ -20,52 +21,69 @@ function getDataFilePath() {
   return filePath;
 }
 
+let mainWindow;
+let splash;
+
 function createWindow() {
-  const win = new BrowserWindow({
+  splash = new BrowserWindow({
+    width: 300,
+    height: 300,
+    transparent: true,
+    frame: false,
+    alwaysOnTop: true,
+  });
+
+  splash.loadFile(path.join(__dirname, 'loading.html'));
+
+  mainWindow = new BrowserWindow({
     width: 1000,
     height: 700,
+    show: false, // Hide until Angular is ready
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
-      nodeIntegration: false
-    }
+      nodeIntegration: false,
+    },
   });
 
-  win.loadFile(path.join(__dirname, 'dist/frontend/browser/index.html'));
-  // Optional: Open dev tools
-  // win.webContents.openDevTools();
+  mainWindow.loadFile(path.join(__dirname, 'dist/frontend/browser/index.html'));
 
-  return win;
+  // Show mainWindow and close splash when Angular's DOM is ready
+  mainWindow.webContents.once('dom-ready', () => {
+    if (splash) {
+      splash.close();
+    }
+    mainWindow.show();
+  });
+
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
+
+  return mainWindow;
 }
 
 app.whenReady().then(() => {
   const filePath = getDataFilePath();
 
-  // Create window immediately so app UI is responsive
   createWindow();
 
-  // Rotate sold balances yearly on app start
   rotateAllSold(filePath)
     .then(() => console.log('Sold rotation done.'))
     .catch(err => console.error('Rotation failed:', err));
 });
 
 app.on('window-all-closed', () => {
-  // On macOS apps generally stay active until user quits explicitly with Cmd + Q
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
+  if (process.platform !== 'darwin') app.quit();
 });
 
 app.on('activate', () => {
-  // On macOS re-create window when dock icon is clicked and no windows are open
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   }
 });
 
-// IPC handlers
-
+// IPC handlers remain unchanged
 ipcMain.handle('read-agent', async (_, ns) => {
   try {
     console.log('IPC read-agent for NS:', ns);
@@ -82,7 +100,6 @@ ipcMain.handle('update-conge', async (_, payload) => {
     console.log('IPC update-conge received payload:', payload);
     const filePath = getDataFilePath();
 
-    // 1. Update Excel file and get result
     const result = writeExcel(filePath, payload.ns, payload.duration, payload.from, payload.to);
 
     if (!result.success) {
@@ -90,7 +107,6 @@ ipcMain.handle('update-conge', async (_, payload) => {
       return result;
     }
 
-    // 2. Re-read the updated employee data
     const updatedAgent = await readExcel(filePath, payload.ns);
 
     if (!updatedAgent) {
@@ -98,12 +114,10 @@ ipcMain.handle('update-conge', async (_, payload) => {
       return { success: false, reason: 'not-found-after-update' };
     }
 
-    // 3. Generate Word doc synchronously
     const docPath = generateWordDoc(updatedAgent, payload.from, payload.to, payload.duration);
 
     console.log('update-conge: Word doc generated at:', docPath);
 
-    // 4. Return success and doc path (optional)
     return { success: true, documentPath: docPath };
 
   } catch (err) {
@@ -162,4 +176,9 @@ ipcMain.handle('get-all-employees', async (_, params) => {
     console.error('Erreur dans get-all-employees:', err);
     throw err;
   }
+});
+
+ipcMain.handle('bulk-update-conge', async (_, payload) => {
+  const filePath = getDataFilePath();
+  return await writeBulkExcel(filePath, payload.nsList, payload.from, payload.to);
 });

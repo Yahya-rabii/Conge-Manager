@@ -21,4 +21,9 @@ contextBridge.exposeInMainWorld('electron', {
     console.log('Preload: getAllEmployees called with params:', params);
     return ipcRenderer.invoke('get-all-employees', params);
   },
+  bulkUpdateConge: (payload) => {
+    console.log('Preload: bulkUpdateConge called:', payload);
+    return ipcRenderer.invoke('bulk-update-conge', payload);
+  }
+
 });

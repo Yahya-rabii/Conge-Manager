@@ -77,9 +77,30 @@
     </label>
   </div>
 
+  <div class="relative z-0 w-full mb-5 group flex items-center">
+    <label for="solde"
+      class="mr-4 text-sm text-gray-500 dark:text-gray-400">
+      Solde
+    </label>
+    <button type="button"
+      class="px-2 py-1 bg-gray-200 rounded-l hover:bg-gray-300"
+      (click)="employee.SOLDE = (employee.SOLDE || 0) - 1"
+      [disabled]="(employee.SOLDE || 0) <= 0">
+      -
+    </button>
+    <input [(ngModel)]="employee.SOLDE" name="SOLDE" id="solde" type="number" min="0"
+      class="w-20 text-center py-2 px-1 border-t border-b border-gray-300 focus:outline-none dark:text-black"
+      placeholder="0" />
+    <button type="button"
+      class="px-2 py-1 bg-gray-200 rounded-r hover:bg-gray-300"
+      (click)="employee.SOLDE = (employee.SOLDE || 0) + 1">
+      +
+    </button>
+  </div>
+
   <div class="flex justify-center">
     <button type="submit"
-      class="text-black bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-6 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800 disabled:opacity-50"
+      class="text-black bg-gray-700 hover:bg-gray-500 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-6 py-2.5 text-center dark:bg-gray-700 dark:hover:bg-gray-500 dark:text-white dark:hover:text-black dark:focus:ring-gray-300 transition hover:cursor-pointer"
       [disabled]="form.invalid">
       Ajouter employé
     </button>
