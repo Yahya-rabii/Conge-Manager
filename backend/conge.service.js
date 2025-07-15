@@ -173,23 +173,49 @@ function generateWordDoc(agent, from, to, duration) {
       <w:r><w:rPr><w:sz w:val="26"/></w:rPr><w:t xml:space="preserve"> ${escapeXml(value)}</w:t></w:r>
     </w:p>`;
 
-  const paragraphsXml = [
-    `<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:b/><w:sz w:val="36"/></w:rPr><w:t xml:space="preserve">DECISION DE CONGE</w:t></w:r></w:p>`,
-    emptyLine, emptyLine,
-    paragraph(`Vu l’article 40 du Dahir n°1.11.10 du 14 rabii I 1432(18/02/2011) ...`),
+   const paragraphsXml = [
+    `
+    <w:p>
+      <w:pPr>
+        <w:jc w:val="center"/>
+      </w:pPr>
+      <w:r>
+        <w:rPr>
+          <w:b/>
+          <w:sz w:val="36"/>
+        </w:rPr>
+        <w:t xml:space="preserve">DECISION DE CONGE</w:t>
+      </w:r>
+    </w:p>`,
+
     emptyLine,
+    emptyLine,
+
+    paragraph(`Vu l’article 40 du Dahir n°1.11.10 du 14 rabii I 1432(18/02/2011) portant promulgation de la Loi n° 50.05 modifiant et complétant le Dahir n° 1.58.008 du 4 chaabane 1377 (24/02/1958) portant statut de la Fonction Publique ;`),
+
+    emptyLine,
+
     paragraph(`Vu la demande de l’intéressé(e) :`),
-    emptyLine, emptyLine,
+
+    emptyLine,
+    emptyLine,
+
     paragraph(`Article :`),
+
     boldLabelLine(`Mr, Mme, Melle`, `${agent.PRENOM || ''} ${agent.NOM || ''}`),
     boldLabelLine(`D.O.T.I`, agent.NS || ''),
     boldLabelLine(`Cadre`, agent.CADRE || ''),
     boldLabelLine(`Grade`, agent.GRADE || ''),
     boldLabelLine(`Fonction`, agent.FONCTION || ''),
+
     emptyLine,
+
     paragraph(`Bénéficiera d’un congé administratif à compter du :`),
+
     rightAligned(`${fromFormatted} AU ${toFormatted}`),
+
     emptyLine,
+
     rightAligned(`Casablanca, le : ${today}`)
   ].join('');
 
