@@ -1,4 +1,11 @@
-import { Component, NgZone } from '@angular/core';
+import {
+  Component,
+  NgZone,
+  AfterViewInit,
+  ViewChild,
+  ElementRef,
+  inject,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -6,6 +13,8 @@ import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
+
+import { ElectronService } from '../../core/services/electron.service';
 
 @Component({
   selector: 'app-add-agent.component',
@@ -16,12 +25,18 @@ import { MatNativeDateModule } from '@angular/material/core';
     MatInputModule,
     MatButtonModule,
     MatDatepickerModule,
-    MatNativeDateModule
+    MatNativeDateModule,
   ],
   templateUrl: './add-agent.component.html',
-  styleUrls: ['./add-agent.component.css']
+  styleUrls: ['./add-agent.component.css'],
+  standalone: true,
 })
-export class AddEmployeeComponent {
+export class AddEmployeeComponent implements AfterViewInit {
+  @ViewChild('nsInput') nsInputRef!: ElementRef<HTMLInputElement>;
+
+  private zone = inject(NgZone);
+  private electron = inject(ElectronService);
+
   employee = {
     NS: '',
     NCIN: '',
@@ -30,14 +45,12 @@ export class AddEmployeeComponent {
     CADRE: '',
     GRADE: '',
     FONCTION: '',
-    "SOLDE_Y-2": 0,
-    "SOLDE_Y-1": 0,
-    "SOLDE_Y": 0,
+    'SOLDE_Y-2': 0,
+    'SOLDE_Y-1': 0,
+    'SOLDE_Y': 0,
     SOLDE: 0,
     LAST_UPDATED_YEAR: new Date().getFullYear(),
   };
-
-  constructor(private zone: NgZone) {}
 
   async submit() {
     if (!this.employee.NS.trim() || !this.employee.NCIN.trim()) {
@@ -45,15 +58,12 @@ export class AddEmployeeComponent {
       return;
     }
 
-    // Run the Electron IPC call outside Angular zone to prevent UI blocking
     await this.zone.runOutsideAngular(async () => {
       await (window as any).electron.addEmployee(this.employee);
     });
 
-    // Re-enter Angular zone to update UI
     this.zone.run(() => {
       alert('Employee added successfully');
-      // Reset form
       this.employee = {
         NS: '',
         NCIN: '',
@@ -62,12 +72,30 @@ export class AddEmployeeComponent {
         CADRE: '',
         GRADE: '',
         FONCTION: '',
-        "SOLDE_Y-2": 0,
-        "SOLDE_Y-1": 0,
-        "SOLDE_Y": 0,
+        'SOLDE_Y-2': 0,
+        'SOLDE_Y-1': 0,
+        'SOLDE_Y': 0,
         SOLDE: 0,
         LAST_UPDATED_YEAR: new Date().getFullYear(),
       };
     });
+  }
+
+  ngAfterViewInit() {
+    if (this.electron?.ipcRenderer) {
+      this.electron.ipcRenderer.on('refocus', () => {
+        this.zone.runOutsideAngular(() => {
+          const el = document.activeElement as HTMLElement;
+          if (el) {
+            el.blur();
+            setTimeout(() => el.focus(), 100);
+          }
+        });
+      });
+    }
+
+    setTimeout(() => {
+      this.nsInputRef?.nativeElement?.focus();
+    }, 300);
   }
 }

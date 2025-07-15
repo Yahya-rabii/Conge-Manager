@@ -63,6 +63,9 @@ export class TableAgentComponent implements OnInit, AfterViewInit {
   bulkDuration = 0;
   searchDebounce: any;
 
+  // Page jump functionality
+  pageJumpValue: number | null = null;
+
   constructor(private zone: NgZone, private router: Router) {}
 
   ngOnInit() {
@@ -240,6 +243,64 @@ export class TableAgentComponent implements OnInit, AfterViewInit {
       this.page++;
       this.loadEmployees();
     }
+  }
+
+  // Page jump functionality methods
+  onPageJumpInput(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this.pageJumpValue = value ? parseInt(value, 10) : null;
+  }
+
+  isValidPageJump(): boolean {
+    return this.pageJumpValue !== null && 
+           this.pageJumpValue >= 1 && 
+           this.pageJumpValue <= this.totalPages() &&
+           this.pageJumpValue !== this.page;
+  }
+
+  jumpToPage(): void {
+    if (this.isValidPageJump() && this.pageJumpValue !== null) {
+      this.page = this.pageJumpValue;
+      this.pageJumpValue = null;
+      this.loadEmployees();
+    }
+  }
+
+  goToPage(pageNumber: number): void {
+    if (pageNumber >= 1 && pageNumber <= this.totalPages() && pageNumber !== this.page) {
+      this.page = pageNumber;
+      this.loadEmployees();
+    }
+  }
+
+  getPageNumbers(): number[] {
+    const total = this.totalPages();
+    const current = this.page;
+    const delta = 2; // Show 2 pages before and after current page
+    const pages: number[] = [];
+
+    // Always show first page
+    if (current > delta + 1) {
+      pages.push(1);
+      if (current > delta + 2) {
+        pages.push(-1); // Placeholder for ellipsis
+      }
+    }
+
+    // Show pages around current page
+    for (let i = Math.max(1, current - delta); i <= Math.min(total, current + delta); i++) {
+      pages.push(i);
+    }
+
+    // Always show last page
+    if (current < total - delta) {
+      if (current < total - delta - 1) {
+        pages.push(-1); // Placeholder for ellipsis
+      }
+      pages.push(total);
+    }
+
+    return pages.filter((page, index, array) => array.indexOf(page) === index);
   }
 
   totalPages(): number {

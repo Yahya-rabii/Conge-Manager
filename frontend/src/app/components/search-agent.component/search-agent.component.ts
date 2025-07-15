@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy, ChangeDetectorRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { format } from 'date-fns';
@@ -6,6 +6,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatNativeDateModule, DateAdapter, MAT_DATE_LOCALE, MAT_DATE_FORMATS } from '@angular/material/core';
 import { AppDateAdapter, APP_DATE_FORMATS } from './custom-date-format';
 import { registerLocaleData } from '@angular/common';
@@ -16,6 +17,7 @@ registerLocaleData(localeFr);
 @Component({
   selector: 'app-search-agent',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FormsModule,
@@ -24,6 +26,7 @@ registerLocaleData(localeFr);
     MatButtonModule,
     MatDatepickerModule,
     MatNativeDateModule,
+    MatProgressSpinnerModule,
   ],
   providers: [
     { provide: MAT_DATE_LOCALE, useValue: 'fr-FR' },
@@ -34,20 +37,37 @@ registerLocaleData(localeFr);
   styleUrls: ['./search-agent.component.css']
 })
 export class SearchAgentComponent {
+  private readonly cdr = inject(ChangeDetectorRef);
+
   ns = '';
   agent: any = null;
   from: Date | null = null;
   to: Date | null = null;
   duration = 0;
+  isSearching = false;
+  isProcessing = false;
 
   async search() {
-    this.agent = await (window as any).electron.readAgent(this.ns);
-    this.from = null;
-    this.to = null;
-    this.duration = 0;
+    if (!this.ns.trim()) return;
+    
+    this.isSearching = true;
+    this.cdr.markForCheck();
+    
+    try {
+      this.agent = await (window as any).electron.readAgent(this.ns);
+      this.from = null;
+      this.to = null;
+      this.duration = 0;
 
-    if (!this.agent) {
-      alert('No employee found with this NS.');
+      if (!this.agent) {
+        alert('No employee found with this NS.');
+      }
+    } catch (error) {
+      console.error('Search error:', error);
+      alert('Error searching for employee.');
+    } finally {
+      this.isSearching = false;
+      this.cdr.markForCheck();
     }
   }
 
@@ -72,45 +92,53 @@ export class SearchAgentComponent {
 
     if (isAugustFull) {
       this.duration = 31;
+      this.cdr.markForCheck();
       return;
     }
 
     if (startDay === 5 && endDay === 1 && baseDays === 4) {
       this.duration = 4;
+      this.cdr.markForCheck();
       return;
     }
 
     // Starts Monday and ends Friday
     if (startDay === 1 && endDay === 5) {
       this.duration = baseDays + 2;
+      this.cdr.markForCheck();
       return;
     }
 
     // Starts Monday and ends Monday
     if (startDay === 1 && endDay === 1) {
       this.duration = baseDays + 2;
+      this.cdr.markForCheck();
       return;
     }
 
     // Starts Friday and ends Friday
     if (startDay === 5 && endDay === 5) {
       this.duration = baseDays + 2;
+      this.cdr.markForCheck();
       return;
     }
 
     // Starts Monday and ends not Friday
     if (startDay === 1 && endDay !== 5) {
       this.duration = baseDays + 2;
+      this.cdr.markForCheck();
       return;
     }
 
     // Starts not Monday and ends Friday
     if (startDay !== 1 && endDay === 5) {
       this.duration = baseDays + 2;
+      this.cdr.markForCheck();
       return;
     }
 
     this.duration = baseDays;
+    this.cdr.markForCheck();
   }
 }
 

@@ -154,15 +154,33 @@ ipcMain.handle('get-all-employees', async (_, params) => {
   try {
     const { page = 1, pageSize = 10, query = '' } = params || {};
     const filePath = getDataFilePath();
-    const workbook = XLSX.readFile(filePath);
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    let data = XLSX.utils.sheet_to_json(sheet);
+    
+    // Use cached data from service for better performance
+    const stats = await require('fs').promises.stat(filePath);
+    const fileModified = stats.mtime.getTime();
+    
+    // Check if we can use cached data
+    let data;
+    if (global.employeeCache && global.employeeCacheModified === fileModified) {
+      data = global.employeeCache;
+    } else {
+      const workbook = XLSX.readFile(filePath);
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      data = XLSX.utils.sheet_to_json(sheet);
+      
+      // Cache the data
+      global.employeeCache = data;
+      global.employeeCacheModified = fileModified;
+    }
 
+    // Filter data if query provided
     if (query && query.length > 0) {
       const q = query.trim().toLowerCase();
       data = data.filter(emp =>
         String(emp.NS || '').toLowerCase().includes(q) ||
-        String(emp.NCIN || '').toLowerCase().includes(q)
+        String(emp.NCIN || '').toLowerCase().includes(q) ||
+        String(emp.NOM || '').toLowerCase().includes(q) ||
+        String(emp.PRENOM || '').toLowerCase().includes(q)
       );
     }
 

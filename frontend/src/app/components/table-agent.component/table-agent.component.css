@@ -1,0 +1,117 @@
+/* Fixed table container with smooth scrolling */
+.table-container {
+  height: 60vh;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #374151 #f3f4f6;
+}
+
+/* Webkit scrollbar styling */
+.table-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  background: #374151;
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: #4b5563;
+}
+
+/* Ensure table header stays visible */
+.table-container thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+/* Improved cell content handling */
+.table-cell-content {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table-cell-content.expandable {
+  white-space: normal;
+  word-wrap: break-word;
+}
+
+/* Smooth hover transitions */
+tbody tr {
+  transition: background-color 0.15s ease-in-out;
+}
+
+/* Page jump input styling */
+.page-jump-input {
+  transition: all 0.2s ease-in-out;
+}
+
+.page-jump-input:focus {
+  transform: scale(1.05);
+}
+
+/* Pagination button styling */
+.pagination-btn {
+  transition: all 0.2s ease-in-out;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Enhanced modal animations */
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Loading spinner enhancement */
+.loading-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Responsive design improvements */
+@media (max-width: 768px) {
+  .table-container {
+    height: 50vh;
+  }
+  
+  .pagination-controls {
+    padding: 1rem;
+  }
+  
+  .pagination-controls > div {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}

@@ -19,70 +19,73 @@
     </button>
   </div>
 
-  <!-- Loading Spinner or Table -->
-  <div class="relative overflow-x-auto shadow rounded-md min-h-[200px]">
-
+  <!-- Loading Spinner or Table with Fixed Height -->
+  <div class="relative shadow rounded-md" style="height: 60vh;">
+    
     <!-- Spinner visible while loading -->
-    <div *ngIf="isLoading" class="flex justify-center items-center h-40">
+    <div *ngIf="isLoading" class="flex justify-center items-center h-full">
       <div class="animate-spin rounded-full h-12 w-12 border-4 border-gray-700 border-t-transparent"></div>
     </div>
 
-    <!-- Table only shown if NOT loading and employees exist -->
-    <table
-      *ngIf="!isLoading && (employees?.length ?? 0) > 0"
-      class="w-full text-sm text-left text-gray-500 dark:text-gray-400"
-    >
-      <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-300">
-        <tr>
-          <th class="px-6 py-3"></th>
-          <th class="px-6 py-3">NS</th>
-          <th class="px-6 py-3">NCIN</th>
-          <th class="px-6 py-3">Nom</th>
-          <th class="px-6 py-3">Prénom</th>
-          <th class="px-6 py-3">Cadre</th>
-          <th class="px-6 py-3">Grade</th>
-          <th class="px-6 py-3">Fonction</th>
-          <th class="px-6 py-3 text-center">Y-2</th>
-          <th class="px-6 py-3 text-center">Y-1</th>
-          <th class="px-6 py-3 text-center">Y</th>
-          <th class="px-6 py-3 text-right">Solde</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr
-          *ngFor="let emp of employees"
-          (click)="toggleUserSelection(emp)"
-          [class.bg-blue-100]="isUserSelected(emp)"
-          class="cursor-pointer hover:bg-gray-500 transition dark:bg-gray-800 dark:border-gray-700 hover:text-black"
-        >
-          <td class="px-6 py-4 text-center" (click)="$event.stopPropagation()">
-            <input
-              type="checkbox"
-              [checked]="isUserSelected(emp)"
-              (change)="toggleUserSelection(emp)"
-            />
-          </td>
-          <td class="px-6 py-4">{{ emp.NS }}</td>
-          <td class="px-6 py-4">{{ emp.NCIN }}</td>
-          <td class="px-6 py-4">{{ emp.NOM }}</td>
-          <td class="px-6 py-4">{{ emp.PRENOM }}</td>
-          <td class="px-6 py-4">{{ emp.CADRE }}</td>
-          <td class="px-6 py-4">{{ emp.GRADE }}</td>
-          <td class="px-6 py-4">{{ emp.FONCTION }}</td>
-          <td class="px-6 py-4 text-center">{{ emp['SOLDE_Y-2'] }}</td>
-          <td class="px-6 py-4 text-center">{{ emp['SOLDE_Y-1'] }}</td>
-          <td class="px-6 py-4 text-center">{{ emp['SOLDE_Y'] }}</td>
-          <td class="px-6 py-4 font-semibold text-right text-blue-600">{{ emp['SOLDE'] }}</td>
-        </tr>
-      </tbody>
-    </table>
+    <!-- Table Container with Fixed Height and Scroll -->
+    <div *ngIf="!isLoading" class="h-full overflow-auto rounded-md table-container">
+      <!-- Table only shown if NOT loading and employees exist -->
+      <table
+        *ngIf="(employees?.length ?? 0) > 0"
+        class="w-full text-sm text-left text-gray-500 dark:text-gray-400"
+      >
+        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-300 sticky top-0 z-10">
+          <tr>
+            <th class="px-6 py-3"></th>
+            <th class="px-6 py-3">NS</th>
+            <th class="px-6 py-3">NCIN</th>
+            <th class="px-6 py-3">Nom</th>
+            <th class="px-6 py-3">Prénom</th>
+            <th class="px-6 py-3">Cadre</th>
+            <th class="px-6 py-3">Grade</th>
+            <th class="px-6 py-3">Fonction</th>
+            <th class="px-6 py-3 text-center">Y-2</th>
+            <th class="px-6 py-3 text-center">Y-1</th>
+            <th class="px-6 py-3 text-center">Y</th>
+            <th class="px-6 py-3 text-right">Solde</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            *ngFor="let emp of employees"
+            (click)="toggleUserSelection(emp)"
+            [class.bg-blue-100]="isUserSelected(emp)"
+            class="cursor-pointer hover:bg-gray-500 transition dark:bg-gray-800 dark:border-gray-700 hover:text-black"
+          >
+            <td class="px-6 py-4 text-center" (click)="$event.stopPropagation()">
+              <input
+                type="checkbox"
+                [checked]="isUserSelected(emp)"
+                (change)="toggleUserSelection(emp)"
+              />
+            </td>
+            <td class="px-6 py-4 break-words max-w-[120px]">{{ emp.NS }}</td>
+            <td class="px-6 py-4 break-words max-w-[120px]">{{ emp.NCIN }}</td>
+            <td class="px-6 py-4 break-words max-w-[150px]">{{ emp.NOM }}</td>
+            <td class="px-6 py-4 break-words max-w-[150px]">{{ emp.PRENOM }}</td>
+            <td class="px-6 py-4 break-words max-w-[120px]">{{ emp.CADRE }}</td>
+            <td class="px-6 py-4 break-words max-w-[120px]">{{ emp.GRADE }}</td>
+            <td class="px-6 py-4 break-words max-w-[180px]">{{ emp.FONCTION }}</td>
+            <td class="px-6 py-4 text-center">{{ emp['SOLDE_Y-2'] }}</td>
+            <td class="px-6 py-4 text-center">{{ emp['SOLDE_Y-1'] }}</td>
+            <td class="px-6 py-4 text-center">{{ emp['SOLDE_Y'] }}</td>
+            <td class="px-6 py-4 font-semibold text-right text-blue-600">{{ emp['SOLDE'] }}</td>
+          </tr>
+        </tbody>
+      </table>
 
-    <!-- Show no data message if not loading and no employees -->
-    <div
-      *ngIf="!isLoading && employees?.length === 0"
-      class="p-4 text-center text-gray-500 dark:text-gray-400"
-    >
-      Aucun employé trouvé.
+      <!-- Show no data message if not loading and no employees -->
+      <div
+        *ngIf="employees?.length === 0"
+        class="flex justify-center items-center h-full text-gray-500 dark:text-gray-400"
+      >
+        Aucun employé trouvé.
+      </div>
     </div>
   </div>
 
@@ -208,26 +211,66 @@
     </div>
   </div>
 
-  <!-- Pagination Controls -->
-  <div
-    class="pagination-controls flex justify-between items-center mt-6"
-  >
+  <!-- Enhanced Pagination Controls -->
+  <div class="pagination-controls flex flex-col sm:flex-row justify-between items-center gap-4 mt-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg shadow">
+    <!-- Previous Button -->
     <button
       (click)="goToPreviousPage()"
       [disabled]="page === 1"
-      class="bg-gray-700 text-white px-4 py-2 rounded-md shadow hover:bg-gray-400 hover:text-black transition disabled:opacity-50 disabled:cursor-not-allowed"
+      class="bg-gray-700 text-white px-4 py-2 rounded-md shadow hover:bg-gray-400 hover:text-black transition disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto pagination-btn"
     >
-      Précédent
+      ← Précédent
     </button>
 
-    <span class="text-gray-700 font-medium">Page {{ page }} / {{ totalPages() }}</span>
+    <!-- Page Info and Jump Controls -->
+    <div class="flex flex-col sm:flex-row items-center gap-4">
+  
+      <!-- Page Jump Input -->
+      <div class="flex items-center gap-2">
+        <label for="pageJump" class="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">
+          Aller à:
+        </label>
+        <input
+          id="pageJump"
+          type="number"
+          min="1"
+          [max]="totalPages()"
+          [value]="pageJumpValue"
+          (input)="onPageJumpInput($event)"
+          (keyup.enter)="jumpToPage()"
+          class="w-16 px-2 py-1 text-center border border-gray-300 dark:border-gray-600 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white page-jump-input"
+          placeholder="{{ page }}"
+        />
+      </div>
 
+      <!-- Quick Jump Buttons for nearby pages -->
+      <div class="flex gap-1" *ngIf="totalPages() > 5">
+        <button
+          *ngFor="let pageNum of getPageNumbers()"
+          (click)="pageNum > 0 ? goToPage(pageNum) : null"
+          [disabled]="pageNum === -1"
+          [class.bg-blue-600]="pageNum === page"
+          [class.text-white]="pageNum === page"
+          [class.bg-gray-200]="pageNum !== page && pageNum > 0"
+          [class.dark:bg-gray-600]="pageNum !== page && pageNum > 0"
+          [class.text-gray-700]="pageNum !== page && pageNum > 0"
+          [class.dark:text-gray-300]="pageNum !== page && pageNum > 0"
+          [class.cursor-not-allowed]="pageNum === -1"
+          [class.opacity-50]="pageNum === -1"
+          class="px-2 py-1 rounded text-sm hover:bg-blue-500 hover:text-white transition min-w-[32px]"
+        >
+          {{ pageNum === -1 ? '...' : pageNum }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Next Button -->
     <button
       (click)="goToNextPage()"
       [disabled]="page * pageSize >= totalEmployees"
-      class="bg-gray-700 text-white px-4 py-2 rounded-md shadow hover:bg-gray-400 hover:text-black transition disabled:opacity-50 disabled:cursor-not-allowed"
+      class="bg-gray-700 text-white px-4 py-2 rounded-md shadow hover:bg-gray-400 hover:text-black transition disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto pagination-btn"
     >
-      Suivant
+      Suivant →
     </button>
   </div>
 </div>

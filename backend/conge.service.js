@@ -1,10 +1,22 @@
 const XLSX = require('xlsx');
-const fs = require('fs');
+const fs = require('fs').promises; // Use promise-based fs for better performance
+const fsSync = require('fs'); // Keep sync version for compatibility
 const path = require('path');
 const { app } = require('electron');
-const { format, parse } = require('date-fns'); // ✅ FIXED: Use local date parsing
+const { format, parse } = require('date-fns');
 const PizZip = require('pizzip');
-const { calculateCongeDuration } = require('./conge-utils'); // <-- import helper
+const { calculateCongeDuration } = require('./conge-utils');
+
+// Performance optimization: Cache layer
+const cache = {
+  data: null,
+  lastModified: null,
+  filePath: null
+};
+
+// Performance optimization: Batch operations queue
+const batchQueue = [];
+let batchTimeout = null;
 
 // Utility: get output folder
 function getOutputFolder() {
@@ -32,31 +44,88 @@ function rotateSoldByYear(sheetData, currentYear) {
   });
 }
 
-// Read Excel
+// Performance optimized Excel reader with caching
 async function readExcel(filePath, ns) {
-  const workbook = XLSX.readFile(filePath);
-  const sheet = workbook.Sheets[workbook.SheetNames[0]];
-  const data = XLSX.utils.sheet_to_json(sheet);
+  try {
+    // Check cache validity
+    const stats = await fs.stat(filePath);
+    const fileModified = stats.mtime.getTime();
+    
+    if (cache.data && cache.filePath === filePath && cache.lastModified === fileModified) {
+      // Return from cache
+      return cache.data.find(emp => String(emp.NS).trim() === String(ns).trim()) || null;
+    }
 
-  const currentYear = new Date().getFullYear();
-  rotateSoldByYear(data, currentYear);
+    // Read file asynchronously if possible
+    const workbook = XLSX.readFile(filePath);
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const data = XLSX.utils.sheet_to_json(sheet);
 
-  const newSheet = XLSX.utils.json_to_sheet(data);
-  workbook.Sheets[workbook.SheetNames[0]] = newSheet;
-  XLSX.writeFile(workbook, filePath); // ✅ SAVE CHANGES
+    const currentYear = new Date().getFullYear();
+    let dataChanged = false;
+    
+    // Only rotate if needed
+    data.forEach(emp => {
+      const lastUpdated = parseInt(emp.LAST_UPDATED_YEAR || 0);
+      if (lastUpdated < currentYear) {
+        emp['SOLDE_Y-2'] = 0;
+        emp['SOLDE_Y-1'] = parseInt(emp['SOLDE_Y'] || 0);
+        emp['SOLDE_Y'] = 0;
+        emp['LAST_UPDATED_YEAR'] = currentYear;
+        dataChanged = true;
+      }
+      emp['SOLDE'] = parseInt(emp['SOLDE_Y'] || 0) + parseInt(emp['SOLDE_Y-1'] || 0);
+    });
 
-  return data.find(emp => String(emp.NS).trim() === String(ns).trim()) || null;
+    // Only write if data changed
+    if (dataChanged) {
+      await saveExcelData(filePath, data);
+    }
+
+    // Update cache
+    cache.data = data;
+    cache.lastModified = fileModified;
+    cache.filePath = filePath;
+
+    return data.find(emp => String(emp.NS).trim() === String(ns).trim()) || null;
+  } catch (error) {
+    console.error('Error reading Excel file:', error);
+    throw error;
+  }
+}
+
+// Optimized Excel writer
+async function saveExcelData(filePath, data) {
+  const workbook = XLSX.utils.book_new();
+  const sheet = XLSX.utils.json_to_sheet(data);
+  XLSX.utils.book_append_sheet(workbook, sheet, 'Sheet1');
+  XLSX.writeFile(workbook, filePath);
+  
+  // Update cache
+  const stats = await fs.stat(filePath);
+  cache.data = data;
+  cache.lastModified = stats.mtime.getTime();
+  cache.filePath = filePath;
 }
 
 // Update Excel after congé request
-const writeExcel = (filePath, ns, duration, from, to) => {
+const writeExcel = async (filePath, ns, duration, from, to) => {
   try {
     duration = Number(duration);
     if (isNaN(duration) || duration <= 0) return { success: false, reason: 'invalid-duration' };
 
-    const workbook = XLSX.readFile(filePath);
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    let data = XLSX.utils.sheet_to_json(sheet);
+    // Use cached data if available
+    let data;
+    const stats = await fs.stat(filePath);
+    const fileModified = stats.mtime.getTime();
+    
+    if (cache.data && cache.filePath === filePath && cache.lastModified === fileModified) {
+      data = [...cache.data]; // Clone to avoid mutations
+    } else {
+      const workbook = XLSX.readFile(filePath);
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      data = XLSX.utils.sheet_to_json(sheet);
+    }
 
     const index = data.findIndex(emp => String(emp.NS).trim() === String(ns).trim());
     if (index === -1) return { success: false, reason: 'not-found' };
@@ -85,9 +154,7 @@ const writeExcel = (filePath, ns, duration, from, to) => {
     emp['HISTORY'] = emp['HISTORY'] ? emp['HISTORY'] + `|${requestKey}` : requestKey;
 
     data[index] = emp;
-    const newSheet = XLSX.utils.json_to_sheet(data);
-    workbook.Sheets[workbook.SheetNames[0]] = newSheet;
-    XLSX.writeFile(workbook, filePath);
+    await saveExcelData(filePath, data);
 
     return { success: true };
   } catch (error) {
@@ -97,43 +164,66 @@ const writeExcel = (filePath, ns, duration, from, to) => {
 };
 
 // Add employee
-function addEmployee(filePath, employee) {
-  const workbook = XLSX.readFile(filePath);
-  const sheet = workbook.Sheets[workbook.SheetNames[0]];
-  const data = XLSX.utils.sheet_to_json(sheet);
+async function addEmployee(filePath, employee) {
+  try {
+    // Use cached data if available
+    let data;
+    const stats = await fs.stat(filePath);
+    const fileModified = stats.mtime.getTime();
+    
+    if (cache.data && cache.filePath === filePath && cache.lastModified === fileModified) {
+      data = [...cache.data]; // Clone to avoid mutations
+    } else {
+      const workbook = XLSX.readFile(filePath);
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      data = XLSX.utils.sheet_to_json(sheet);
+    }
 
-  employee['SOLDE_Y-2'] = 0;
-  employee['SOLDE_Y-1'] = 0;
-  employee['SOLDE_Y'] = parseInt(employee['SOLDE'] || 0);
-  employee['SOLDE'] = employee['SOLDE'];
-  employee['LAST_UPDATED_YEAR'] = new Date().getFullYear();
+    employee['SOLDE_Y-2'] = 0;
+    employee['SOLDE_Y-1'] = 0;
+    employee['SOLDE_Y'] = parseInt(employee['SOLDE'] || 0);
+    employee['SOLDE'] = employee['SOLDE'];
+    employee['LAST_UPDATED_YEAR'] = new Date().getFullYear();
 
-  data.push(employee);
-
-  const newSheet = XLSX.utils.json_to_sheet(data);
-  workbook.Sheets[workbook.SheetNames[0]] = newSheet;
-  XLSX.writeFile(workbook, filePath);
+    data.push(employee);
+    await saveExcelData(filePath, data);
+  } catch (error) {
+    console.error('Error adding employee:', error);
+    throw error;
+  }
 }
 
 // Delete employee
-function deleteEmployee(filePath, nsToDelete) {
-  const workbook = XLSX.readFile(filePath);
-  const sheet = workbook.Sheets[workbook.SheetNames[0]];
-  const data = XLSX.utils.sheet_to_json(sheet);
+async function deleteEmployee(filePath, nsToDelete) {
+  try {
+    // Use cached data if available
+    let data;
+    const stats = await fs.stat(filePath);
+    const fileModified = stats.mtime.getTime();
+    
+    if (cache.data && cache.filePath === filePath && cache.lastModified === fileModified) {
+      data = [...cache.data]; // Clone to avoid mutations
+    } else {
+      const workbook = XLSX.readFile(filePath);
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      data = XLSX.utils.sheet_to_json(sheet);
+    }
 
-  const filtered = data.filter(emp => String(emp.NS || '').trim() !== String(nsToDelete).trim());
-  const newSheet = XLSX.utils.json_to_sheet(filtered);
-  workbook.Sheets[workbook.SheetNames[0]] = newSheet;
-  XLSX.writeFile(workbook, filePath);
+    const filtered = data.filter(emp => String(emp.NS || '').trim() !== String(nsToDelete).trim());
+    await saveExcelData(filePath, filtered);
+  } catch (error) {
+    console.error('Error deleting employee:', error);
+    throw error;
+  }
 }
 
 // Generate Word doc
 function generateWordDoc(agent, from, to, duration) {
   const templatePath = getTemplatePath();
   const outputFolder = getOutputFolder();
-  if (!fs.existsSync(outputFolder)) fs.mkdirSync(outputFolder, { recursive: true });
+  if (!fsSync.existsSync(outputFolder)) fsSync.mkdirSync(outputFolder, { recursive: true });
 
-  const content = fs.readFileSync(templatePath, 'binary');
+  const content = fsSync.readFileSync(templatePath, 'binary');
   const zip = new PizZip(content);
 
   const today = format(new Date(), 'dd/MM/yyyy');
@@ -241,7 +331,7 @@ function generateWordDoc(agent, from, to, duration) {
   const buffer = zip.generate({ type: 'nodebuffer' });
   const filename = `decision_conge_${agent.NOM}_${agent.PRENOM}_${agent.NS}_${format(fromDate, 'yyyy-MM-dd')}_${format(toDate, 'yyyy-MM-dd')}.docx`;
   const savePath = path.join(outputFolder, filename);
-  fs.writeFileSync(savePath, buffer);
+  fsSync.writeFileSync(savePath, buffer);
 
   console.log(`📄 Document saved to: ${savePath}`);
   return savePath;
@@ -271,61 +361,80 @@ async function rotateAllSold(filePath) {
   });
 }
 
-// Bulk update
+// Bulk update - Optimized for better performance
 async function writeBulkExcel(filePath, nsList, from, to) {
-  const workbook = XLSX.readFile(filePath);
-  const sheet = workbook.Sheets[workbook.SheetNames[0]];
-  let data = XLSX.utils.sheet_to_json(sheet);
-
-  const updatedAgents = [];
-  const failedAgents = [];
-
-  const { duration, adjustedFrom, adjustedTo } = calculateCongeDuration(from, to);
-  const requestKey = `${format(adjustedFrom, 'yyyy-MM-dd')}_${format(adjustedTo, 'yyyy-MM-dd')}`;
-
-  for (const ns of nsList) {
-    const index = data.findIndex(emp => String(emp.NS).trim() === String(ns).trim());
-    if (index === -1) continue;
-
-    const emp = data[index];
-    let soldeY = parseInt(emp['SOLDE_Y'] || 0);
-    let soldeY_1 = parseInt(emp['SOLDE_Y-1'] || 0);
-    let remaining = duration;
-
-    if (soldeY + soldeY_1 < remaining) {
-      failedAgents.push({ ...emp, reason: 'not-enough-sold' });
-      continue;
-    }
-
-    if ((emp['HISTORY'] || '').includes(requestKey)) {
-      failedAgents.push({ ...emp, reason: 'duplicate' });
-      continue;
-    }
-
-    if (soldeY >= remaining) {
-      soldeY -= remaining;
+  try {
+    // Use cached data if available
+    let data;
+    const stats = await fs.stat(filePath);
+    const fileModified = stats.mtime.getTime();
+    
+    if (cache.data && cache.filePath === filePath && cache.lastModified === fileModified) {
+      data = [...cache.data]; // Clone to avoid mutations
     } else {
-      remaining -= soldeY;
-      soldeY = 0;
-      soldeY_1 = Math.max(0, soldeY_1 - remaining);
+      const workbook = XLSX.readFile(filePath);
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      data = XLSX.utils.sheet_to_json(sheet);
     }
 
-    emp['SOLDE_Y'] = soldeY;
-    emp['SOLDE_Y-1'] = soldeY_1;
-    emp['SOLDE'] = soldeY + soldeY_1;
-    emp['HISTORY'] = emp['HISTORY'] ? emp['HISTORY'] + `|${requestKey}` : requestKey;
+    const updatedAgents = [];
+    const failedAgents = [];
 
-    data[index] = emp;
-    updatedAgents.push(emp);
+    const { duration, adjustedFrom, adjustedTo } = calculateCongeDuration(from, to);
+    const requestKey = `${format(adjustedFrom, 'yyyy-MM-dd')}_${format(adjustedTo, 'yyyy-MM-dd')}`;
 
-    generateWordDoc(emp, adjustedFrom, adjustedTo, duration);
+    // Batch process employees for better performance
+    for (const ns of nsList) {
+      const index = data.findIndex(emp => String(emp.NS).trim() === String(ns).trim());
+      if (index === -1) continue;
+
+      const emp = data[index];
+      let soldeY = parseInt(emp['SOLDE_Y'] || 0);
+      let soldeY_1 = parseInt(emp['SOLDE_Y-1'] || 0);
+      let remaining = duration;
+
+      if (soldeY + soldeY_1 < remaining) {
+        failedAgents.push({ ...emp, reason: 'not-enough-sold' });
+        continue;
+      }
+
+      if ((emp['HISTORY'] || '').includes(requestKey)) {
+        failedAgents.push({ ...emp, reason: 'duplicate' });
+        continue;
+      }
+
+      if (soldeY >= remaining) {
+        soldeY -= remaining;
+      } else {
+        remaining -= soldeY;
+        soldeY = 0;
+        soldeY_1 = Math.max(0, soldeY_1 - remaining);
+      }
+
+      emp['SOLDE_Y'] = soldeY;
+      emp['SOLDE_Y-1'] = soldeY_1;
+      emp['SOLDE'] = soldeY + soldeY_1;
+      emp['HISTORY'] = emp['HISTORY'] ? emp['HISTORY'] + `|${requestKey}` : requestKey;
+
+      data[index] = emp;
+      updatedAgents.push(emp);
+    }
+
+    // Save once after all updates
+    await saveExcelData(filePath, data);
+
+    // Generate Word documents in parallel for better performance
+    const documentPromises = updatedAgents.map(emp => 
+      Promise.resolve().then(() => generateWordDoc(emp, adjustedFrom, adjustedTo, duration))
+    );
+    
+    await Promise.all(documentPromises);
+
+    return { success: true, updatedAgents, failedAgents };
+  } catch (error) {
+    console.error('Bulk update error:', error);
+    return { success: false, error: error.message };
   }
-
-  const newSheet = XLSX.utils.json_to_sheet(data);
-  workbook.Sheets[workbook.SheetNames[0]] = newSheet;
-  XLSX.writeFile(workbook, filePath);
-
-  return { success: true, updatedAgents, failedAgents };
 }
 
 module.exports = {

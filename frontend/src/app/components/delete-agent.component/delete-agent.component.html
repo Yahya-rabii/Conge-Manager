@@ -2,14 +2,15 @@
   <h2 class="text-xl font-semibold text-gray-800 dark:text-white mb-4">Supprimer un employé</h2>
 
   <label for="delete-ns" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">D.O.T.I</label>
-  <input
-    type="text"
-    id="delete-ns"
-    [(ngModel)]="nSToDelete"
-    name="nSToDelete"
-    placeholder="Entrer le NS"
-    class="block w-full p-2.5 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-red-500 focus:border-red-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-red-500 dark:focus:border-red-500"
-  />
+ <input
+  #nsInput
+  type="text"
+  id="delete-ns"
+  [(ngModel)]="nSToDelete"
+  name="nSToDelete"
+  placeholder="Entrer le NS"
+  class="block w-full p-2.5 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-red-500 focus:border-red-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-red-500 dark:focus:border-red-500"
+/>
 
   <button
     type="button"
